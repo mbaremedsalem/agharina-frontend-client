@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Bath,
   BedDouble,
+  BadgeCheck,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -84,9 +85,10 @@ export default function BienDetailPage() {
   const quartierObj = quartiers.find((q) => q.id === bien.quartier);
   const villeName = villeObj && localizedField(villeObj, "nom", i18n);
   const quartierName = quartierObj && localizedField(quartierObj, "nom", i18n);
-  const gestionnaireName =
-    [bien.gestionnaire?.first_name, bien.gestionnaire?.last_name].filter(Boolean).join(" ") ||
-    bien.gestionnaire?.username;
+
+  function gestionnaireName(g) {
+    return [g.first_name, g.last_name].filter(Boolean).join(" ") || g.username;
+  }
 
   function handleReserveClick() {
     if (!isAuthenticated) {
@@ -105,6 +107,18 @@ export default function BienDetailPage() {
 
   return (
     <div className="container section">
+      {bien.vendu && (
+        <div
+          className="alert"
+          style={{ background: "var(--danger-light)", color: "var(--danger-text)", border: "none", marginBottom: "1rem" }}
+        >
+          <BadgeCheck className="icon-sm" />
+          <span>
+            <strong>{t("bienDetail.soldTitle")}</strong> — {t("bienDetail.soldBody")}
+          </span>
+        </div>
+      )}
+
       {offres.length > 0 && (
         <div
           className="alert"
@@ -280,29 +294,52 @@ export default function BienDetailPage() {
 
         <div>
           <div className="sidebar-card">
-            <button type="button" className="btn btn-primary btn-block" onClick={handleReserveClick}>
-              <CalendarCheck className="icon-sm" />
-              {bien.type_transaction === "location" ? t("bienDetail.reserveBien") : t("bienDetail.requestPurchase")}
-            </button>
+            {bien.vendu ? (
+              <button type="button" className="btn btn-block" disabled>
+                <BadgeCheck className="icon-sm" />
+                {t("bienDetail.alreadySold")}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary btn-block" onClick={handleReserveClick}>
+                <CalendarCheck className="icon-sm" />
+                {bien.type_transaction === "location" ? t("bienDetail.reserveBien") : t("bienDetail.requestPurchase")}
+              </button>
+            )}
           </div>
 
-          <div className="sidebar-card">
-            <div className="contact-row">
-              <div className="contact-avatar">{(gestionnaireName || "?").charAt(0).toUpperCase()}</div>
-              <div>
-                <div style={{ fontWeight: 700 }}>{gestionnaireName || t("bienDetail.managerFallback")}</div>
-                <div className="muted" style={{ fontSize: "0.8rem" }}>
-                  {t("bienDetail.managerLabel")}
+          {bien.gestionnaires?.length > 0 ? (
+            bien.gestionnaires.map((g) => (
+              <div className="sidebar-card" key={g.id}>
+                <div className="contact-row">
+                  <div className="contact-avatar">{gestionnaireName(g).charAt(0).toUpperCase()}</div>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{gestionnaireName(g)}</div>
+                    <div className="muted" style={{ fontSize: "0.8rem" }}>
+                      {t("bienDetail.managerLabel")}
+                    </div>
+                  </div>
+                </div>
+                {g.telephone && (
+                  <a href={`tel:${g.telephone}`} className="btn btn-primary btn-block">
+                    <Phone className="icon-sm" />
+                    {g.telephone}
+                  </a>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="sidebar-card">
+              <div className="contact-row">
+                <div className="contact-avatar">?</div>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{t("bienDetail.managerFallback")}</div>
+                  <div className="muted" style={{ fontSize: "0.8rem" }}>
+                    {t("bienDetail.managerLabel")}
+                  </div>
                 </div>
               </div>
             </div>
-            {bien.gestionnaire?.telephone && (
-              <a href={`tel:${bien.gestionnaire.telephone}`} className="btn btn-primary btn-block">
-                <Phone className="icon-sm" />
-                {bien.gestionnaire.telephone}
-              </a>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

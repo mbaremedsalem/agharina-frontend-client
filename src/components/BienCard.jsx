@@ -29,8 +29,9 @@ export default function BienCard({ bien }) {
   }, [bien.photo_principale, bien.reference]);
 
   return (
-    <Link to={`/biens/${bien.reference}`} className="bien-card">
+    <Link to={`/biens/${bien.reference}`} className={"bien-card" + (bien.vendu ? " bien-card-vendu" : "")}>
       <div className="bien-card-media">
+        {bien.vendu && <span className="bien-card-sold-badge">{t("bienDetail.alreadySold")}</span>}
         {bien.photo_principale ? (
           <img src={bien.photo_principale} alt={titre} loading="lazy" />
         ) : videoMedia ? (

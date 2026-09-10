@@ -169,7 +169,10 @@
     "reserveBien": "Reserver ce bien",
     "requestPurchase": "Faire une demande d'achat",
     "managerFallback": "Gestionnaire Agharina",
-    "managerLabel": "Gestionnaire du bien"
+    "managerLabel": "Gestionnaire du bien",
+    "soldTitle": "Ce bien a deja ete vendu",
+    "soldBody": "Il n'est plus disponible a l'achat.",
+    "alreadySold": "Deja vendu"
   },
   "auth": {
     "loginHeroTitle": "Connectez-vous pour reserver votre prochain bien.",
@@ -203,6 +206,7 @@
     "title": "Mon compte",
     "tabProfile": "Mon profil",
     "tabPoints": "Points de fidelite",
+    "tabReservations": "Mes achats et reservations",
     "tabInvite": "Inviter des proches",
     "personalInfo": "Informations personnelles",
     "firstName": "Prenom",
@@ -238,5 +242,19 @@
     "sending": "Envoi...",
     "submitRent": "Demander la reservation",
     "submitBuy": "Envoyer la demande"
+  },
+  "myTransactions": {
+    "empty": "Vous n'avez pas encore d'achat ou de reservation.",
+    "statut_en_attente": "En attente",
+    "statut_confirmee": "Confirmee",
+    "statut_annulee": "Annulee",
+    "statut_terminee": "Terminee",
+    "endingToday": "Se termine aujourd'hui",
+    "daysRemaining_one": "{{count}} jour restant",
+    "daysRemaining_other": "{{count}} jours restants",
+    "notificationTitle": "Votre location se termine bientot. ",
+    "notificationBodyToday": "Votre location de {{titre}} se termine aujourd'hui.",
+    "notificationBody_one": "Votre location de {{titre}} se termine dans {{count}} jour. Preparez-vous.",
+    "notificationBody_other": "Votre location de {{titre}} se termine dans {{count}} jours. Preparez-vous."
   }
 }

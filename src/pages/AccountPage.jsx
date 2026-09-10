@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  AlertTriangle,
   Check,
   Copy,
   Gift,
   Mail,
   Phone,
+  Receipt,
   Save,
   Star,
   User,
@@ -13,24 +16,66 @@ import {
   Users,
 } from "lucide-react";
 import { api } from "../api/client";
+import { useResource } from "../api/useResource";
 import { useAuth } from "../context/AuthContext";
 import { copyToClipboard } from "../utils/clipboard";
+import { formatPrix, localizedField, transactionTypeLabel } from "../constants";
+
+function daysUntil(dateStr) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
 
 export default function AccountPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [tab, setTab] = useState("profil");
+  const { items: transactions, loading: txLoading } = useResource("/transactions/");
 
   const TABS = [
     { key: "profil", label: t("account.tabProfile"), icon: UserCircle },
     { key: "points", label: t("account.tabPoints"), icon: Star },
+    { key: "reservations", label: t("account.tabReservations"), icon: Receipt },
     { key: "invitation", label: t("account.tabInvite"), icon: Gift },
   ];
+
+  const endingSoon = transactions.filter(
+    (tx) =>
+      tx.statut === "confirmee" &&
+      tx.type_transaction === "location" &&
+      tx.date_fin &&
+      daysUntil(tx.date_fin) >= 0 &&
+      daysUntil(tx.date_fin) <= 4
+  );
 
   return (
     <div className="container section">
       <div className="section-header">
         <h2>{t("account.title")}</h2>
       </div>
+
+      {!txLoading && endingSoon.length > 0 && (
+        <div className="alert reservation-notice">
+          <AlertTriangle className="icon-sm" />
+          <div>
+            {endingSoon.map((tx) => {
+              const days = daysUntil(tx.date_fin);
+              const titre = localizedField({ titre: tx.bien_titre, titre_ar: tx.bien_titre_ar }, "titre", i18n);
+              return (
+                <div key={tx.id}>
+                  <strong>{t("myTransactions.notificationTitle")}</strong>
+                  {days === 0
+                    ? t("myTransactions.notificationBodyToday", { titre })
+                    : t("myTransactions.notificationBody", { count: days, titre })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="account-layout">
         <nav className="account-nav">
           {TABS.map((tabItem) => (
@@ -49,6 +94,7 @@ export default function AccountPage() {
         <div>
           {tab === "profil" && <ProfilTab />}
           {tab === "points" && <PointsTab />}
+          {tab === "reservations" && <ReservationsTab transactions={transactions} loading={txLoading} />}
           {tab === "invitation" && <InvitationTab />}
         </div>
       </div>
@@ -200,6 +246,74 @@ function PointsTab() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function ReservationsTab({ transactions, loading }) {
+  const { t, i18n } = useTranslation();
+
+  if (loading) return <div className="page-loading">{t("common.loading")}</div>;
+
+  if (transactions.length === 0) {
+    return (
+      <div className="detail-card">
+        <h3>
+          <Receipt className="icon-sm" />
+          {t("account.tabReservations")}
+        </h3>
+        <p className="muted" style={{ marginTop: "0.5rem" }}>
+          {t("myTransactions.empty")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {transactions.map((tx) => {
+        const titre = localizedField({ titre: tx.bien_titre, titre_ar: tx.bien_titre_ar }, "titre", i18n);
+        const isLocation = tx.type_transaction === "location";
+        const days = isLocation && tx.date_fin ? daysUntil(tx.date_fin) : null;
+        const showCountdown = isLocation && tx.statut === "confirmee" && days !== null && days >= 0;
+
+        return (
+          <div className="tx-card" key={tx.id}>
+            <div className="tx-card-top">
+              <div>
+                <Link to={`/biens/${tx.bien_reference}`} className="tx-card-title">
+                  {titre}
+                </Link>
+                <div className="tx-card-meta">
+                  <span className="muted" style={{ fontFamily: "monospace" }}>
+                    {tx.reference}
+                  </span>
+                  <span className="badge">{transactionTypeLabel(t, tx.type_transaction)}</span>
+                  <span className={"badge statut-" + tx.statut}>
+                    {t(`myTransactions.statut_${tx.statut}`)}
+                  </span>
+                </div>
+              </div>
+              <strong>{formatPrix(t, tx.montant_total, "forfait")}</strong>
+            </div>
+
+            {isLocation && (tx.date_debut || tx.date_fin) && (
+              <div className="tx-card-dates">
+                <span className="muted">
+                  {tx.date_debut} → {tx.date_fin}
+                </span>
+                {showCountdown && (
+                  <span className={"tx-days-left " + (days <= 4 ? "urgent" : "ok")}>
+                    {days === 0
+                      ? t("myTransactions.endingToday")
+                      : t("myTransactions.daysRemaining", { count: days })}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

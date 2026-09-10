@@ -173,7 +173,10 @@
     "reserveBien": "احجز هذا العقار",
     "requestPurchase": "تقديم طلب شراء",
     "managerFallback": "مسؤول Agharina",
-    "managerLabel": "مسيّر العقار"
+    "managerLabel": "مسيّر العقار",
+    "soldTitle": "تم بيع هذا العقار بالفعل",
+    "soldBody": "لم يعد متاحًا للشراء.",
+    "alreadySold": "تم البيع بالفعل"
   },
   "auth": {
     "loginHeroTitle": "سجّل الدخول لحجز عقارك القادم.",
@@ -207,6 +210,7 @@
     "title": "حسابي",
     "tabProfile": "ملفي الشخصي",
     "tabPoints": "نقاط الولاء",
+    "tabReservations": "مشترياتي وحجوزاتي",
     "tabInvite": "دعوة أصدقاء",
     "personalInfo": "المعلومات الشخصية",
     "firstName": "الاسم الأول",
@@ -246,5 +250,27 @@
     "sending": "جارٍ الإرسال...",
     "submitRent": "طلب الحجز",
     "submitBuy": "إرسال الطلب"
+  },
+  "myTransactions": {
+    "empty": "ليس لديك أي عملية شراء أو حجز حتى الآن.",
+    "statut_en_attente": "قيد الانتظار",
+    "statut_confirmee": "مؤكدة",
+    "statut_annulee": "ملغاة",
+    "statut_terminee": "منتهية",
+    "endingToday": "تنتهي اليوم",
+    "daysRemaining_zero": "لا يوجد أيام متبقية",
+    "daysRemaining_one": "يوم واحد متبقٍ",
+    "daysRemaining_two": "يومان متبقيان",
+    "daysRemaining_few": "{{count}} أيام متبقية",
+    "daysRemaining_many": "{{count}} يومًا متبقيًا",
+    "daysRemaining_other": "{{count}} يوم متبقٍ",
+    "notificationTitle": "إيجارك على وشك الانتهاء. ",
+    "notificationBodyToday": "إيجار {{titre}} ينتهي اليوم.",
+    "notificationBody_zero": "إيجار {{titre}} على وشك الانتهاء. استعد لذلك.",
+    "notificationBody_one": "إيجار {{titre}} ينتهي بعد يوم واحد. استعد لذلك.",
+    "notificationBody_two": "إيجار {{titre}} ينتهي بعد يومين. استعد لذلك.",
+    "notificationBody_few": "إيجار {{titre}} ينتهي بعد {{count}} أيام. استعد لذلك.",
+    "notificationBody_many": "إيجار {{titre}} ينتهي بعد {{count}} يومًا. استعد لذلك.",
+    "notificationBody_other": "إيجار {{titre}} ينتهي بعد {{count}} يوم. استعد لذلك."
   }
 }
