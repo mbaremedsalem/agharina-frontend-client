@@ -207,6 +207,7 @@
     "tabProfile": "Mon profil",
     "tabPoints": "Points de fidelite",
     "tabReservations": "Mes achats et reservations",
+    "tabCadeaux": "Cadeaux",
     "tabInvite": "Inviter des proches",
     "personalInfo": "Informations personnelles",
     "firstName": "Prenom",
@@ -256,5 +257,26 @@
     "notificationBodyToday": "Votre location de {{titre}} se termine aujourd'hui.",
     "notificationBody_one": "Votre location de {{titre}} se termine dans {{count}} jour. Preparez-vous.",
     "notificationBody_other": "Votre location de {{titre}} se termine dans {{count}} jours. Preparez-vous."
+  },
+  "cadeaux": {
+    "title": "Echangez vos points contre des cadeaux",
+    "catalogTitle": "Cadeaux disponibles",
+    "historyTitle": "Historique de mes echanges",
+    "pointsNeeded_one": "{{count}} point",
+    "pointsNeeded_other": "{{count}} points",
+    "stockLabel_one": "{{count}} restant",
+    "stockLabel_other": "{{count}} restants",
+    "redeemButton": "Echanger",
+    "redeeming": "Echange en cours...",
+    "insufficientPoints": "Points insuffisants",
+    "outOfStock": "Rupture de stock",
+    "emptyCatalog": "Aucun cadeau disponible pour le moment.",
+    "emptyHistory": "Vous n'avez pas encore echange de cadeau.",
+    "confirmRedeem": "Echanger {{points}} points contre \"{{nom}}\" ?",
+    "redeemSuccessWithRef": "Cadeau echange avec succes ! Reference : {{reference}}",
+    "statut_en_attente": "En attente",
+    "statut_valide": "Valide",
+    "statut_refuse": "Refuse",
+    "statut_receptionne": "Receptionne"
   }
 }

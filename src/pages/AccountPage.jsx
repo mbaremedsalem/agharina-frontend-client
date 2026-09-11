@@ -10,6 +10,7 @@ import {
   Phone,
   Receipt,
   Save,
+  ShoppingBag,
   Star,
   User,
   UserCircle,
@@ -38,6 +39,7 @@ export default function AccountPage() {
     { key: "profil", label: t("account.tabProfile"), icon: UserCircle },
     { key: "points", label: t("account.tabPoints"), icon: Star },
     { key: "reservations", label: t("account.tabReservations"), icon: Receipt },
+    { key: "cadeaux", label: t("account.tabCadeaux"), icon: ShoppingBag },
     { key: "invitation", label: t("account.tabInvite"), icon: Gift },
   ];
 
@@ -95,6 +97,7 @@ export default function AccountPage() {
           {tab === "profil" && <ProfilTab />}
           {tab === "points" && <PointsTab />}
           {tab === "reservations" && <ReservationsTab transactions={transactions} loading={txLoading} />}
+          {tab === "cadeaux" && <CadeauxTab />}
           {tab === "invitation" && <InvitationTab />}
         </div>
       </div>
@@ -314,6 +317,170 @@ function ReservationsTab({ transactions, loading }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function CadeauxTab() {
+  const { t, i18n } = useTranslation();
+  const { refreshUser } = useAuth();
+  const { items: cadeaux, loading: cadeauxLoading } = useResource("/cadeaux/");
+  const { items: echanges, loading: echangesLoading, reload: reloadEchanges } = useResource("/echanges-cadeaux/");
+  const [solde, setSolde] = useState(null);
+  const [redeemingId, setRedeemingId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  function reloadSolde() {
+    return api.get("/mes-points/").then((data) => setSolde(data.solde_points));
+  }
+
+  useEffect(() => {
+    reloadSolde();
+  }, []);
+
+  function showToast(message, type = "error") {
+    setToast({ message, type });
+  }
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), toast.type === "success" ? 8000 : 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  async function handleRedeem(cadeau) {
+    if (solde < cadeau.points_necessaires) {
+      showToast(t("cadeaux.insufficientPoints"), "error");
+      return;
+    }
+    if (!window.confirm(t("cadeaux.confirmRedeem", { points: cadeau.points_necessaires, nom: cadeau.nom }))) return;
+    setRedeemingId(cadeau.id);
+    try {
+      const echange = await api.post("/echanges-cadeaux/", { cadeau: cadeau.id });
+      showToast(t("cadeaux.redeemSuccessWithRef", { reference: echange.reference }), "success");
+      await Promise.all([reloadSolde(), reloadEchanges(), refreshUser()]);
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setRedeemingId(null);
+    }
+  }
+
+  const loading = cadeauxLoading || echangesLoading || solde === null;
+  if (loading) return <div className="page-loading">{t("common.loading")}</div>;
+
+  return (
+    <div>
+      <div className="points-hero">
+        <div>
+          <div className="points-hero-label">{t("account.pointsBalance")}</div>
+          <div className="points-hero-value">{solde} pts</div>
+        </div>
+        <Gift size={48} style={{ position: "relative", zIndex: 1, opacity: 0.5 }} />
+      </div>
+
+      {toast && (
+        <div className="toast-stack">
+          <div className={"toast " + (toast.type === "success" ? "toast-success" : "toast-error")}>
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      <div className="detail-card">
+        <h3>
+          <ShoppingBag className="icon-sm" />
+          {t("cadeaux.catalogTitle")}
+        </h3>
+        {cadeaux.length === 0 ? (
+          <p className="muted" style={{ marginTop: "0.5rem" }}>
+            {t("cadeaux.emptyCatalog")}
+          </p>
+        ) : (
+          <div className="cadeaux-grid">
+            {cadeaux.map((cadeau) => {
+              const insufficient = solde < cadeau.points_necessaires;
+              const outOfStock = cadeau.stock <= 0;
+              const disabled = outOfStock || redeemingId === cadeau.id;
+              return (
+                <div className="cadeau-card" key={cadeau.id}>
+                  {cadeau.image && <img src={cadeau.image} alt={cadeau.nom} className="cadeau-card-image" />}
+                  <div className="cadeau-card-body">
+                    <div className="cadeau-card-title">{cadeau.nom}</div>
+                    {cadeau.description && <div className="cadeau-card-desc">{cadeau.description}</div>}
+                    <div className="cadeau-card-footer">
+                      <span className="cadeau-points-badge">
+                        {t("cadeaux.pointsNeeded", { count: cadeau.points_necessaires })}
+                      </span>
+                      {!outOfStock && (
+                        <span className="cadeau-stock-note">
+                          {t("cadeaux.stockLabel", { count: cadeau.stock })}
+                        </span>
+                      )}
+                    </div>
+                    {insufficient && !outOfStock && (
+                      <span className="cadeau-stock-note" style={{ color: "var(--danger-text)" }}>
+                        {t("cadeaux.insufficientPoints")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      disabled={disabled}
+                      onClick={() => handleRedeem(cadeau)}
+                    >
+                      <Gift className="icon-sm" />
+                      {redeemingId === cadeau.id
+                        ? t("cadeaux.redeeming")
+                        : outOfStock
+                        ? t("cadeaux.outOfStock")
+                        : t("cadeaux.redeemButton")}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="detail-card" style={{ marginTop: "1.25rem" }}>
+        <h3>{t("cadeaux.historyTitle")}</h3>
+        {echanges.length ? (
+          <div style={{ marginTop: "0.5rem" }}>
+            {echanges.map((ech) => (
+              <div className="points-history-row" key={ech.id}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  {ech.cadeau_image && (
+                    <img
+                      src={ech.cadeau_image}
+                      alt=""
+                      style={{ width: 36, height: 36, borderRadius: "var(--radius-sm)", objectFit: "cover" }}
+                    />
+                  )}
+                  <div>
+                    <div>{ech.cadeau_nom}</div>
+                    <div className="muted" style={{ fontSize: "0.78rem", fontFamily: "monospace" }}>
+                      {ech.reference}
+                    </div>
+                    <div className="muted" style={{ fontSize: "0.78rem" }}>
+                      {new Date(ech.date_creation).toLocaleDateString(i18n.language)}
+                    </div>
+                  </div>
+                </div>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span className="points-delta negative">-{ech.points_utilises}</span>
+                  <span className={"badge statut-" + ech.statut}>{t(`cadeaux.statut_${ech.statut}`)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="muted" style={{ marginTop: "0.5rem" }}>
+            {t("cadeaux.emptyHistory")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
