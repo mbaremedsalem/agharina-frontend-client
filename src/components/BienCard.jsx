@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Bath, BedDouble, ImageOff, Play, MapPin } from "lucide-react";
+import { Bath, BedDouble, Play, MapPin } from "lucide-react";
 import { api } from "../api/client";
-import { bienTypeLabel, formatPrix, localizedField, occupationStatusLabel } from "../constants";
+import { DEFAULT_BIEN_IMAGE, bienTypeLabel, formatPrix, localizedField, occupationStatusLabel } from "../constants";
 
 export default function BienCard({ bien }) {
   const { t, i18n } = useTranslation();
@@ -49,12 +49,12 @@ export default function BienCard({ bien }) {
             </span>
           </>
         ) : (
-          <div className="bien-card-media-placeholder">
-            <ImageOff className="icon" />
-          </div>
+          <img src={DEFAULT_BIEN_IMAGE} alt={titre} loading="lazy" />
         )}
         <span className="bien-card-badge">{bienTypeLabel(t, bien.type_bien)}</span>
-        <span className="bien-card-price-badge">{formatPrix(t, bien.prix, bien.unite_prix)}</span>
+        {Number(bien.prix) > 0 && (
+          <span className="bien-card-price-badge">{formatPrix(t, bien.prix, bien.unite_prix)}</span>
+        )}
       </div>
       <div className="bien-card-body">
         <div className="bien-card-title">{titre}</div>

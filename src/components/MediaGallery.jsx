@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, ImageOff, Images, Play, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Images, Play, X } from "lucide-react";
+import { DEFAULT_BIEN_IMAGE } from "../constants";
 
 export default function MediaGallery({ medias = [] }) {
   const { t, i18n } = useTranslation();
@@ -11,7 +12,7 @@ export default function MediaGallery({ medias = [] }) {
   if (medias.length === 0) {
     return (
       <div className="gallery-empty">
-        <ImageOff className="icon" />
+        <img src={DEFAULT_BIEN_IMAGE} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </div>
     );
   }

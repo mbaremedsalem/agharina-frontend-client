@@ -1,3 +1,6 @@
+/** Image affichee a la place d'une photo quand un bien/espace n'en a aucune. */
+export const DEFAULT_BIEN_IMAGE = "https://admin-akarina.akarina.shop/media/offres/home.jpeg";
+
 export function bienTypeLabel(t, type) {
   return t(`bienTypes.${type}`, { defaultValue: type });
 }

@@ -157,12 +157,14 @@ export default function BienDetailPage() {
             </button>
           </div>
         </div>
-        <div className="detail-price">
-          {formatPrix(t, bien.prix, bien.unite_prix)}
-          <div>
-            <span>{transactionTypeLabel(t, bien.type_transaction)}</span>
+        {Number(bien.prix) > 0 && (
+          <div className="detail-price">
+            {formatPrix(t, bien.prix, bien.unite_prix)}
+            <div>
+              <span>{transactionTypeLabel(t, bien.type_transaction)}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <MediaGallery medias={bien.medias} />

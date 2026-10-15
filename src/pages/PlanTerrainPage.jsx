@@ -4,17 +4,19 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   Crosshair,
-  ImageOff,
+  Landmark,
   Layers,
   MapPin,
+  Maximize2,
   MessageCircle,
   Phone,
+  Ruler,
   Search,
   Waypoints,
 } from "lucide-react";
 import { GoogleMap, InfoWindow, Marker, Polygon, useLoadScript } from "@react-google-maps/api";
 import { useResource } from "../api/useResource";
-import { localizedField, formatPrix } from "../constants";
+import { DEFAULT_BIEN_IMAGE, localizedField, formatPrix } from "../constants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const DEFAULT_CENTER = { lat: 18.0858, lng: -15.9785 };
@@ -91,6 +93,51 @@ function polygonCentroid(points) {
   return { lat, lng };
 }
 
+/**
+ * Carte du popup d'un lot/espace sur le plan - layout partage entre
+ * terrain et espace (memes champs moughataa/emplacement/surface/
+ * dimensions), seul le pied (prix+statut+actions pour un terrain, lien
+ * simple pour un espace) differe via `footer`.
+ */
+function PlanPopupCard({ titre, photo, numero, moughataa, adresse, superficie, longueurM, largeurM, t, footer }) {
+  return (
+    <div className="plan-popup">
+      <div className="plan-popup-media">
+        <img src={photo || DEFAULT_BIEN_IMAGE} alt="" />
+        {numero && <span className="plan-popup-badge-numero">{numero}</span>}
+      </div>
+      <div className="plan-popup-title">{titre}</div>
+      <div className="plan-popup-fields">
+        {moughataa && (
+          <div className="plan-popup-field">
+            <Landmark size={13} />
+            {moughataa}
+          </div>
+        )}
+        {adresse && (
+          <div className="plan-popup-field">
+            <MapPin size={13} />
+            {adresse}
+          </div>
+        )}
+        {superficie && (
+          <div className="plan-popup-field">
+            <Ruler size={13} />
+            {t("planTerrain.lotSuperficie", { superficie })}
+          </div>
+        )}
+        {(longueurM || largeurM) && (
+          <div className="plan-popup-field">
+            <Maximize2 size={13} />
+            {t("planTerrain.lotDimensions", { longueur: longueurM ?? "?", largeur: largeurM ?? "?" })}
+          </div>
+        )}
+      </div>
+      {footer}
+    </div>
+  );
+}
+
 export default function PlanTerrainPage() {
   const { t, i18n } = useTranslation();
   const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
@@ -145,7 +192,10 @@ export default function PlanTerrainPage() {
           statut_disponibilite: b.statut_disponibilite,
           numero_lot: b.detail_terrain.numero_lot,
           superficie_m2: b.detail_terrain.superficie_m2,
+          longueur_m: b.detail_terrain.longueur_m,
+          largeur_m: b.detail_terrain.largeur_m,
           moughataa: b.detail_terrain.moughataa,
+          adresse: b.adresse_complete,
           polygone: b.detail_terrain.polygone,
         })),
     [terrains, quartier]
@@ -346,27 +396,26 @@ export default function PlanTerrainPage() {
                 )}
                 onCloseClick={() => setSelectedZone(null)}
               >
-                <div style={{ minWidth: 200, maxWidth: 240 }}>
-                  <strong>{selectedZone.nom}</strong>
-                  {selectedZone.moughataa && (
-                    <div className="muted" style={{ fontSize: "0.78rem", marginTop: "0.2rem" }}>
-                      {t("planTerrain.lotMoughataa", { moughataa: selectedZone.moughataa })}
+                <PlanPopupCard
+                  titre={selectedZone.nom}
+                  photo={espaceById.get(selectedZone.bien).photo_principale}
+                  moughataa={selectedZone.moughataa}
+                  adresse={selectedZone.adresse}
+                  superficie={selectedZone.superficie_m2}
+                  longueurM={selectedZone.longueur_m}
+                  largeurM={selectedZone.largeur_m}
+                  t={t}
+                  footer={
+                    <div className="plan-popup-actions">
+                      <Link
+                        to={`/biens/${espaceById.get(selectedZone.bien).reference}`}
+                        className="btn btn-primary btn-small"
+                      >
+                        {t("planTerrain.viewBien")}
+                      </Link>
                     </div>
-                  )}
-                  {selectedZone.superficie_m2 && (
-                    <div className="muted" style={{ fontSize: "0.78rem" }}>
-                      {t("planTerrain.lotSuperficie", { superficie: selectedZone.superficie_m2 })}
-                    </div>
-                  )}
-                  <div style={{ marginTop: "0.5rem" }}>
-                    <Link
-                      to={`/biens/${espaceById.get(selectedZone.bien).reference}`}
-                      className="btn btn-primary btn-small"
-                    >
-                      {t("planTerrain.viewBien")}
-                    </Link>
-                  </div>
-                </div>
+                  }
+                />
               </InfoWindow>
             )}
 
@@ -392,63 +441,57 @@ export default function PlanTerrainPage() {
 
             {selectedLot && (
               <InfoWindow position={selectedLot.polygone[0]} onCloseClick={() => setSelectedLot(null)}>
-                <div style={{ minWidth: 220, maxWidth: 240 }}>
-                  {selectedLot.photo_principale ? (
-                    <img
-                      src={selectedLot.photo_principale}
-                      alt=""
-                      style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 6, marginBottom: "0.4rem" }}
-                    />
-                  ) : (
-                    <div className="bien-card-media-placeholder" style={{ height: 90, marginBottom: "0.4rem" }}>
-                      <ImageOff className="icon-sm" />
-                    </div>
-                  )}
-                  <strong>{localizedField(selectedLot, "titre", i18n)}</strong>
-                  <div className="muted" style={{ fontSize: "0.8rem", margin: "0.2rem 0" }}>
-                    {t("planTerrain.lotNumero", { numero: selectedLot.numero_lot })}
-                  </div>
-                  {selectedLot.moughataa && (
-                    <div className="muted" style={{ fontSize: "0.78rem" }}>
-                      {t("planTerrain.lotMoughataa", { moughataa: selectedLot.moughataa })}
-                    </div>
-                  )}
-                  {selectedLot.superficie_m2 && (
-                    <div className="muted" style={{ fontSize: "0.78rem" }}>
-                      {t("planTerrain.lotSuperficie", { superficie: selectedLot.superficie_m2 })}
-                    </div>
-                  )}
-                  <div style={{ margin: "0.4rem 0", fontWeight: 600 }}>
-                    {formatPrix(t, selectedLot.prix, selectedLot.unite_prix)}
-                  </div>
-                  <span
-                    className="plan-terrain-statut-badge"
-                    style={{
-                      background: STATUT_COULEURS[statutLot(selectedLot)].fill,
-                    }}
-                  >
-                    {t(`planTerrain.${STATUT_COULEURS[statutLot(selectedLot)].labelKey}`)}
-                  </span>
-                  <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
-                    <Link to={`/biens/${selectedLot.reference}`} className="btn btn-primary btn-small">
-                      {t("planTerrain.viewBien")}
-                    </Link>
-                    <a href={`tel:${CONTACT_PHONE}`} className="btn btn-ghost btn-small" title={t("planTerrain.call")}>
-                      <Phone className="icon-sm" />
-                    </a>
-                    <a
-                      href={`https://wa.me/222${CONTACT_PHONE}?text=${encodeURIComponent(
-                        t("planTerrain.whatsappMessage", { numero: selectedLot.numero_lot })
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-ghost btn-small"
-                      title={t("planTerrain.whatsapp")}
-                    >
-                      <MessageCircle className="icon-sm" />
-                    </a>
-                  </div>
-                </div>
+                <PlanPopupCard
+                  titre={localizedField(selectedLot, "titre", i18n)}
+                  photo={selectedLot.photo_principale}
+                  numero={selectedLot.numero_lot}
+                  moughataa={selectedLot.moughataa}
+                  adresse={selectedLot.adresse}
+                  superficie={selectedLot.superficie_m2}
+                  longueurM={selectedLot.longueur_m}
+                  largeurM={selectedLot.largeur_m}
+                  t={t}
+                  footer={
+                    <>
+                      <div className="plan-popup-price-row">
+                        {Number(selectedLot.prix) > 0 ? (
+                          <strong>{formatPrix(t, selectedLot.prix, selectedLot.unite_prix)}</strong>
+                        ) : (
+                          <span />
+                        )}
+                        <span
+                          className="plan-terrain-statut-badge"
+                          style={{ background: STATUT_COULEURS[statutLot(selectedLot)].fill }}
+                        >
+                          {t(`planTerrain.${STATUT_COULEURS[statutLot(selectedLot)].labelKey}`)}
+                        </span>
+                      </div>
+                      <div className="plan-popup-actions">
+                        <Link to={`/biens/${selectedLot.reference}`} className="btn btn-primary btn-small">
+                          {t("planTerrain.viewBien")}
+                        </Link>
+                        <a
+                          href={`tel:${CONTACT_PHONE}`}
+                          className="btn btn-ghost btn-small plan-popup-icon-btn"
+                          title={t("planTerrain.call")}
+                        >
+                          <Phone className="icon-sm" />
+                        </a>
+                        <a
+                          href={`https://wa.me/222${CONTACT_PHONE}?text=${encodeURIComponent(
+                            t("planTerrain.whatsappMessage", { numero: selectedLot.numero_lot })
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-ghost btn-small plan-popup-icon-btn"
+                          title={t("planTerrain.whatsapp")}
+                        >
+                          <MessageCircle className="icon-sm" />
+                        </a>
+                      </div>
+                    </>
+                  }
+                />
               </InfoWindow>
             )}
           </GoogleMap>

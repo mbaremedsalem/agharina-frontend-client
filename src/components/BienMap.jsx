@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { GoogleMap, Marker, InfoWindow, useLoadScript } from "@react-google-maps/api";
-import { ImageOff } from "lucide-react";
-import { formatPrix, localizedField } from "../constants";
+import { DEFAULT_BIEN_IMAGE, formatPrix, localizedField } from "../constants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const DEFAULT_CENTER = { lat: 18.0858, lng: -15.9785 }; // Nouakchott
@@ -53,6 +52,7 @@ export default function BienMap({ biens = [], height = 620, defaultZoom = 12, ce
       <GoogleMap
         center={mapCenter}
         zoom={defaultZoom}
+        mapTypeId="satellite"
         mapContainerStyle={{ height: "100%", width: "100%" }}
         options={{ streetViewControl: false, fullscreenControl: false }}
       >
@@ -70,18 +70,14 @@ export default function BienMap({ biens = [], height = 620, defaultZoom = 12, ce
             onCloseClick={() => setSelected(null)}
           >
             <Link to={`/biens/${selected.reference}`} className="map-pin-card">
-              {selected.photo_principale ? (
-                <img src={selected.photo_principale} alt={localizedField(selected, "titre", i18n)} />
-              ) : (
-                <div className="bien-card-media-placeholder" style={{ height: 100 }}>
-                  <ImageOff className="icon-sm" />
-                </div>
-              )}
+              <img src={selected.photo_principale || DEFAULT_BIEN_IMAGE} alt={localizedField(selected, "titre", i18n)} />
               <div className="map-pin-card-body">
                 <div className="map-pin-card-title">{localizedField(selected, "titre", i18n)}</div>
-                <div className="muted" style={{ fontSize: "0.8rem" }}>
-                  {formatPrix(t, selected.prix, selected.unite_prix)}
-                </div>
+                {Number(selected.prix) > 0 && (
+                  <div className="muted" style={{ fontSize: "0.8rem" }}>
+                    {formatPrix(t, selected.prix, selected.unite_prix)}
+                  </div>
+                )}
               </div>
             </Link>
           </InfoWindow>
