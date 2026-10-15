@@ -24,6 +24,7 @@ function estimateMontant(bien, dateDebut, dateFin) {
 export default function ReservationModal({ bien, onClose }) {
   const { t, i18n } = useTranslation();
   const isLocation = bien.type_transaction === "location";
+  const isMonthly = isLocation && bien.unite_prix === "mois";
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [error, setError] = useState(null);
@@ -42,6 +43,10 @@ export default function ReservationModal({ bien, onClose }) {
     }
     if (isLocation && dateFin < dateDebut) {
       setError(t("reservation.invalidDates"));
+      return;
+    }
+    if (isMonthly && bien.statut_disponibilite !== "disponible") {
+      setError(t("reservation.monthlyUnavailable"));
       return;
     }
 
@@ -102,7 +107,9 @@ export default function ReservationModal({ bien, onClose }) {
                 </label>
               </div>
 
-              <AvailabilityCalendar indisponibilites={bien.indisponibilites} focusDate={dateDebut} />
+              {!isMonthly && (
+                <AvailabilityCalendar indisponibilites={bien.indisponibilites} focusDate={dateDebut} />
+              )}
             </>
           )}
 

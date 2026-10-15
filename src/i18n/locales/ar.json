@@ -20,6 +20,7 @@
     "buy": "شراء",
     "rent": "إيجار",
     "offers": "العروض",
+    "planTerrain": "مخطط الأرض",
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
     "myAccount": "حسابي",
@@ -27,7 +28,9 @@
     "menu": "القائمة",
     "search": "البحث عن عقار",
     "about": "من نحن",
-    "contact": "اتصل بنا"
+    "contact": "اتصل بنا",
+    "enableNotifications": "تفعيل الإشعارات",
+    "notificationsEnabled": "الإشعارات مفعّلة"
   },
   "footer": {
     "tagline": "© {{year}} Agharina — بيع وإيجار العقارات في موريتانيا",
@@ -67,7 +70,8 @@
     "duplexe": "دوبلكس",
     "appartement": "شقة",
     "terrain": "أرض",
-    "commercial": "تجاري"
+    "commercial": "تجاري",
+    "espace": "مساحة / مرفق عام"
   },
   "transactionTypes": {
     "any": "بيع أو إيجار",
@@ -78,6 +82,11 @@
     "jour": "/ اليوم",
     "3jours": "/ 3 أيام",
     "mois": "/ الشهر"
+  },
+  "occupationStatus": {
+    "disponible": "متاح",
+    "attribue": "مخصص",
+    "pas_encore_disponible": "غير متاح بعد"
   },
   "home": {
     "heroTitle": "اعثر على عقارك القادم في موريتانيا",
@@ -107,6 +116,32 @@
     "availability": "التوفر",
     "furnishedOnly": "مفروش فقط",
     "reset": "إعادة تعيين التصفية"
+  },
+  "bienMap": {
+    "missingApiKey": "مفتاح API الخاص بخرائط جوجل مفقود (VITE_GOOGLE_MAPS_API_KEY).",
+    "loadError": "تعذر تحميل خرائط جوجل. حاول مرة أخرى لاحقًا."
+  },
+  "planTerrain": {
+    "title": "مخطط الأرض",
+    "missingApiKey": "مفتاح API الخاص بخرائط جوجل مفقود (VITE_GOOGLE_MAPS_API_KEY).",
+    "loadError": "تعذر تحميل خرائط جوجل. حاول مرة أخرى لاحقًا.",
+    "chooseQuartier": "اختر مدينة ثم حيًا لعرض مخطط التجزئة الخاص به.",
+    "fieldNumero": "رقم الأرض",
+    "fieldNumeroPlaceholder": "مثال: 245",
+    "notFound": "لا توجد أرض بالرقم {{numero}} في هذا الحي.",
+    "noPlan": "لا يوجد مخطط تجزئة متاح لهذا الحي.",
+    "lotNumero": "القطعة رقم {{numero}}",
+    "lotMoughataa": "المقاطعة: {{moughataa}}",
+    "lotSuperficie": "{{superficie}} م²",
+    "viewBien": "عرض التفاصيل",
+    "toggleMapType": "تبديل القمر الصناعي / الخريطة",
+    "recenter": "توسيط الخريطة على كل القطع",
+    "call": "اتصال",
+    "whatsapp": "واتساب",
+    "whatsappMessage": "مرحبًا، أنا مهتم بالقطعة رقم {{numero}}.",
+    "legendAvailable": "متاحة",
+    "legendAssigned": "مخصصة",
+    "legendSold": "مباعة"
   },
   "biensList": {
     "searchPlaceholder": "ابحث بالعنوان، الحي، المرجع...",
@@ -159,11 +194,15 @@
     "floors": "الطوابق",
     "furnished": "مفروش",
     "area": "المساحة",
+    "length": "الطول",
+    "width": "العرض",
     "capacity": "السعة (عدد الأشخاص)",
     "description": "الوصف",
     "serviceIncluded": "خدمة مشمولة",
     "serviceIncludedFallback": "تموين، تزيين وطاقم مشمولون.",
     "landInfo": "معلومات عقارية",
+    "landLot": "القطعة رقم {{numero}}",
+    "landMoughataa": "المقاطعة: {{moughataa}}",
     "landTitle": "السند العقاري: {{titre}}",
     "landBounded": "أرض محددة الحدود",
     "landNotBounded": "أرض غير محددة الحدود",
@@ -176,7 +215,8 @@
     "managerLabel": "مسيّر العقار",
     "soldTitle": "تم بيع هذا العقار بالفعل",
     "soldBody": "لم يعد متاحًا للشراء.",
-    "alreadySold": "تم البيع بالفعل"
+    "alreadySold": "تم البيع بالفعل",
+    "reserveUnavailable": "غير متاح حاليًا"
   },
   "auth": {
     "loginHeroTitle": "سجّل الدخول لحجز عقارك القادم.",
@@ -245,6 +285,7 @@
     "endDate": "تاريخ النهاية",
     "missingDates": "اختر تاريخ البداية والنهاية.",
     "invalidDates": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية.",
+    "monthlyUnavailable": "هذا العقار غير متاح حاليًا.",
     "submitError": "تعذر إرسال الطلب.",
     "price": "السعر",
     "estimatedAmount": "المبلغ التقديري",

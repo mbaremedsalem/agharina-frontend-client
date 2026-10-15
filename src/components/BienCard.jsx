@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Bath, BedDouble, ImageOff, Play, MapPin } from "lucide-react";
 import { api } from "../api/client";
-import { bienTypeLabel, formatPrix, localizedField } from "../constants";
+import { bienTypeLabel, formatPrix, localizedField, occupationStatusLabel } from "../constants";
 
 export default function BienCard({ bien }) {
   const { t, i18n } = useTranslation();
@@ -32,6 +32,9 @@ export default function BienCard({ bien }) {
     <Link to={`/biens/${bien.reference}`} className={"bien-card" + (bien.vendu ? " bien-card-vendu" : "")}>
       <div className="bien-card-media">
         {bien.vendu && <span className="bien-card-sold-badge">{t("bienDetail.alreadySold")}</span>}
+        {bien.unite_prix === "mois" && bien.statut_disponibilite !== "disponible" && (
+          <span className="bien-card-sold-badge">{occupationStatusLabel(t, bien.statut_disponibilite)}</span>
+        )}
         {bien.photo_principale ? (
           <img src={bien.photo_principale} alt={titre} loading="lazy" />
         ) : videoMedia ? (

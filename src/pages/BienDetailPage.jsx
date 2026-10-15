@@ -26,7 +26,7 @@ import MediaGallery from "../components/MediaGallery";
 import AvailabilityCalendar from "../components/AvailabilityCalendar";
 import BienMap from "../components/BienMap";
 import ReservationModal from "../components/ReservationModal";
-import { bienTypeLabel, transactionTypeLabel, formatPrix, localizedField } from "../constants";
+import { bienTypeLabel, transactionTypeLabel, formatPrix, localizedField, occupationStatusLabel } from "../constants";
 import { copyToClipboard } from "../utils/clipboard";
 
 export default function BienDetailPage() {
@@ -215,6 +215,20 @@ export default function BienDetailPage() {
                   <span>{t("bienDetail.area")}</span>
                 </div>
               ) : null}
+              {bien.detail_terrain?.longueur_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.longueur_m} m</strong>
+                  <span>{t("bienDetail.length")}</span>
+                </div>
+              ) : null}
+              {bien.detail_terrain?.largeur_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.largeur_m} m</strong>
+                  <span>{t("bienDetail.width")}</span>
+                </div>
+              ) : null}
               {bien.detail_ceremonie?.capacite_personnes ? (
                 <div className="spec-item">
                   <Users className="icon-sm" />
@@ -244,10 +258,20 @@ export default function BienDetailPage() {
             </div>
           )}
 
-          {bien.detail_terrain?.titre_foncier && (
+          {(bien.detail_terrain?.titre_foncier ||
+            bien.detail_terrain?.numero_lot ||
+            bien.detail_terrain?.moughataa) && (
             <div className="detail-card">
               <h3>{t("bienDetail.landInfo")}</h3>
-              <p className="muted">{t("bienDetail.landTitle", { titre: bien.detail_terrain.titre_foncier })}</p>
+              {bien.detail_terrain.numero_lot && (
+                <p className="muted">{t("bienDetail.landLot", { numero: bien.detail_terrain.numero_lot })}</p>
+              )}
+              {bien.detail_terrain.moughataa && (
+                <p className="muted">{t("bienDetail.landMoughataa", { moughataa: bien.detail_terrain.moughataa })}</p>
+              )}
+              {bien.detail_terrain.titre_foncier && (
+                <p className="muted">{t("bienDetail.landTitle", { titre: bien.detail_terrain.titre_foncier })}</p>
+              )}
               <p className="muted">
                 {bien.detail_terrain.borne ? t("bienDetail.landBounded") : t("bienDetail.landNotBounded")}
               </p>
@@ -268,13 +292,34 @@ export default function BienDetailPage() {
             </div>
           )}
 
-          {bien.type_transaction === "location" && (
+          {bien.type_transaction === "location" && bien.unite_prix !== "mois" && (
             <div className="detail-card">
               <h3>
                 <CalendarDays className="icon-sm" />
                 {t("bienDetail.availability")}
               </h3>
               <AvailabilityCalendar indisponibilites={bien.indisponibilites} />
+            </div>
+          )}
+
+          {bien.unite_prix === "mois" && (
+            <div className="detail-card">
+              <h3>
+                <CalendarDays className="icon-sm" />
+                {t("bienDetail.availability")}
+              </h3>
+              <div
+                className="alert"
+                style={{
+                  background:
+                    bien.statut_disponibilite === "disponible" ? "var(--success-light)" : "var(--warning-light)",
+                  color: bien.statut_disponibilite === "disponible" ? "var(--success-text)" : "var(--warning-text)",
+                  border: "none",
+                }}
+              >
+                <BadgeCheck className="icon-sm" />
+                <span>{occupationStatusLabel(t, bien.statut_disponibilite)}</span>
+              </div>
             </div>
           )}
 
@@ -298,6 +343,11 @@ export default function BienDetailPage() {
               <button type="button" className="btn btn-block" disabled>
                 <BadgeCheck className="icon-sm" />
                 {t("bienDetail.alreadySold")}
+              </button>
+            ) : bien.unite_prix === "mois" && bien.statut_disponibilite !== "disponible" ? (
+              <button type="button" className="btn btn-block" disabled>
+                <BadgeCheck className="icon-sm" />
+                {t("bienDetail.reserveUnavailable")}
               </button>
             ) : (
               <button type="button" className="btn btn-primary btn-block" onClick={handleReserveClick}>

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, LogIn, LogOut, Menu, User, UserPlus, X } from "lucide-react";
+import { Bell, BellRing, LayoutDashboard, LogIn, LogOut, Menu, User, UserPlus, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationsContext";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NavSearch from "./NavSearch";
 
@@ -11,6 +12,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+  const { permission, enableNotifications, firebaseConfigured } = useNotifications();
   const navigate = useNavigate();
   const menuRef = useRef(null);
 
@@ -19,6 +21,7 @@ export default function Header() {
     { to: "/biens?type_transaction=vente", label: t("nav.buy") },
     { to: "/biens?type_transaction=location", label: t("nav.rent") },
     { to: "/offres", label: t("nav.offers") },
+    { to: "/plan-terrain", label: t("nav.planTerrain") },
   ];
 
   useEffect(() => {
@@ -56,6 +59,18 @@ export default function Header() {
 
         <div className="header-actions">
           <NavSearch />
+          {firebaseConfigured && permission !== "unsupported" && permission !== "denied" && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-small header-notif-btn"
+              onClick={enableNotifications}
+              disabled={permission === "granted"}
+              aria-label={t("nav.enableNotifications")}
+              title={permission === "granted" ? t("nav.notificationsEnabled") : t("nav.enableNotifications")}
+            >
+              {permission === "granted" ? <BellRing className="icon-sm" /> : <Bell className="icon-sm" />}
+            </button>
+          )}
           <LanguageSwitcher />
 
           {isAuthenticated ? (

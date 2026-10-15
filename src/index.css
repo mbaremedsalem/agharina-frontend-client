@@ -203,6 +203,17 @@ svg {
   gap: 0.5rem;
 }
 
+.header-notif-btn {
+  padding: 0.5rem;
+  border-radius: 999px;
+}
+
+.header-notif-btn:disabled {
+  opacity: 1;
+  color: var(--primary-text);
+  cursor: default;
+}
+
 .mobile-nav-panel {
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -753,15 +764,74 @@ textarea:focus {
   position: relative;
 }
 
-.leaflet-popup-content-wrapper {
-  padding: 0;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+.plan-terrain-map-wrap {
+  position: relative;
 }
 
-.leaflet-popup-content {
-  margin: 0;
-  width: 220px !important;
+.plan-terrain-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  z-index: 5;
+}
+
+.plan-terrain-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.plan-terrain-control-btn:hover {
+  background: var(--surface-alt);
+}
+
+.plan-terrain-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 0.5rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.plan-terrain-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.plan-terrain-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.plan-terrain-statut-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .map-pin-card {

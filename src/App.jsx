@@ -11,6 +11,7 @@ import InvitePage from "./pages/InvitePage";
 import AccountPage from "./pages/AccountPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import PlanTerrainPage from "./pages/PlanTerrainPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="biens" element={<BiensListPage />} />
         <Route path="biens/:reference" element={<BienDetailPage />} />
         <Route path="offres" element={<OffresPage />} />
+        <Route path="plan-terrain" element={<PlanTerrainPage />} />
         <Route path="a-propos" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
         <Route path="connexion" element={<LoginPage />} />

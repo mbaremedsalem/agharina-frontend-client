@@ -33,6 +33,10 @@ export function localizedField(item, field, i18n) {
   return item[field];
 }
 
+export function occupationStatusLabel(t, statut) {
+  return t(`occupationStatus.${statut}`, { defaultValue: statut });
+}
+
 export function formatPrix(t, prix, unite) {
   const n = Number(prix);
   const formatted = Number.isFinite(n) ? n.toLocaleString("fr-FR") : prix;

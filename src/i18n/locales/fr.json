@@ -20,6 +20,7 @@
     "buy": "Acheter",
     "rent": "Louer",
     "offers": "Offres",
+    "planTerrain": "Plan de terrain",
     "login": "Connexion",
     "register": "Creer un compte",
     "myAccount": "Mon compte",
@@ -27,7 +28,9 @@
     "menu": "Menu",
     "search": "Rechercher un bien",
     "about": "A propos",
-    "contact": "Contact"
+    "contact": "Contact",
+    "enableNotifications": "Activer les notifications",
+    "notificationsEnabled": "Notifications activees"
   },
   "footer": {
     "tagline": "© {{year}} Agharina — Vente et location immobiliere en Mauritanie",
@@ -67,7 +70,8 @@
     "duplexe": "Duplexe",
     "appartement": "Appartement",
     "terrain": "Terrain",
-    "commercial": "Commercial"
+    "commercial": "Commercial",
+    "espace": "Espace / equipement public"
   },
   "transactionTypes": {
     "any": "Vente ou location",
@@ -78,6 +82,11 @@
     "jour": "/ jour",
     "3jours": "/ 3 jours",
     "mois": "/ mois"
+  },
+  "occupationStatus": {
+    "disponible": "Disponible",
+    "attribue": "Attribue",
+    "pas_encore_disponible": "Pas encore disponible"
   },
   "home": {
     "heroTitle": "Trouvez votre prochain bien immobilier en Mauritanie",
@@ -107,6 +116,32 @@
     "availability": "Disponibilite",
     "furnishedOnly": "Meuble uniquement",
     "reset": "Reinitialiser les filtres"
+  },
+  "bienMap": {
+    "missingApiKey": "Cle API Google Maps manquante (VITE_GOOGLE_MAPS_API_KEY).",
+    "loadError": "Impossible de charger Google Maps. Reessayez plus tard."
+  },
+  "planTerrain": {
+    "title": "Plan de terrain",
+    "missingApiKey": "Cle API Google Maps manquante (VITE_GOOGLE_MAPS_API_KEY).",
+    "loadError": "Impossible de charger Google Maps. Reessayez plus tard.",
+    "chooseQuartier": "Choisissez une ville puis un quartier pour afficher son plan de lotissement.",
+    "fieldNumero": "Numero de terrain",
+    "fieldNumeroPlaceholder": "Ex: 245",
+    "notFound": "Aucun terrain avec le numero {{numero}} dans ce quartier.",
+    "noPlan": "Aucun plan de lotissement disponible pour ce quartier.",
+    "lotNumero": "Lot n°{{numero}}",
+    "lotMoughataa": "Moughataa : {{moughataa}}",
+    "lotSuperficie": "{{superficie}} m²",
+    "viewBien": "Voir la fiche",
+    "toggleMapType": "Basculer satellite / plan",
+    "recenter": "Recentrer sur tous les lots",
+    "call": "Appeler",
+    "whatsapp": "WhatsApp",
+    "whatsappMessage": "Bonjour, je suis interesse par le lot n°{{numero}}.",
+    "legendAvailable": "Disponible",
+    "legendAssigned": "Attribue",
+    "legendSold": "Vendu"
   },
   "biensList": {
     "searchPlaceholder": "Rechercher par titre, quartier, reference...",
@@ -155,11 +190,15 @@
     "floors": "Etages",
     "furnished": "Meuble",
     "area": "Superficie",
+    "length": "Longueur",
+    "width": "Largeur",
     "capacity": "Capacite (personnes)",
     "description": "Description",
     "serviceIncluded": "Service inclus",
     "serviceIncludedFallback": "Traiteur, decoration et personnel inclus.",
     "landInfo": "Informations foncieres",
+    "landLot": "Lot n°{{numero}}",
+    "landMoughataa": "Moughataa : {{moughataa}}",
     "landTitle": "Titre foncier : {{titre}}",
     "landBounded": "Terrain borne",
     "landNotBounded": "Terrain non borne",
@@ -172,7 +211,8 @@
     "managerLabel": "Gestionnaire du bien",
     "soldTitle": "Ce bien a deja ete vendu",
     "soldBody": "Il n'est plus disponible a l'achat.",
-    "alreadySold": "Deja vendu"
+    "alreadySold": "Deja vendu",
+    "reserveUnavailable": "Non disponible actuellement"
   },
   "auth": {
     "loginHeroTitle": "Connectez-vous pour reserver votre prochain bien.",
@@ -237,6 +277,7 @@
     "endDate": "Date de fin",
     "missingDates": "Choisissez une date de debut et de fin.",
     "invalidDates": "La date de fin doit etre posterieure a la date de debut.",
+    "monthlyUnavailable": "Ce bien n'est pas disponible actuellement.",
     "submitError": "Impossible d'envoyer la demande.",
     "price": "Prix",
     "estimatedAmount": "Montant estime",
