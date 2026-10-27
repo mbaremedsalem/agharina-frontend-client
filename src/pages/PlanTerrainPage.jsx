@@ -99,7 +99,22 @@ function polygonCentroid(points) {
  * dimensions), seul le pied (prix+statut+actions pour un terrain, lien
  * simple pour un espace) differe via `footer`.
  */
-function PlanPopupCard({ titre, photo, numero, moughataa, adresse, superficie, longueurM, largeurM, t, footer }) {
+function PlanPopupCard({
+  titre,
+  photo,
+  numero,
+  moughataa,
+  adresse,
+  superficie,
+  longueurM,
+  largeurM,
+  baseM,
+  hauteurM,
+  hypotenuseM,
+  diagonaleM,
+  t,
+  footer,
+}) {
   return (
     <div className="plan-popup">
       <div className="plan-popup-media">
@@ -130,6 +145,18 @@ function PlanPopupCard({ titre, photo, numero, moughataa, adresse, superficie, l
           <div className="plan-popup-field">
             <Maximize2 size={13} />
             {t("planTerrain.lotDimensions", { longueur: longueurM ?? "?", largeur: largeurM ?? "?" })}
+          </div>
+        )}
+        {(baseM || hauteurM) && (
+          <div className="plan-popup-field">
+            <Maximize2 size={13} />
+            {t("planTerrain.lotBaseHauteur", { base: baseM ?? "?", hauteur: hauteurM ?? "?" })}
+          </div>
+        )}
+        {(hypotenuseM || diagonaleM) && (
+          <div className="plan-popup-field">
+            <Maximize2 size={13} />
+            {t("planTerrain.lotHypotenuseDiagonale", { hypotenuse: hypotenuseM ?? "?", diagonale: diagonaleM ?? "?" })}
           </div>
         )}
       </div>
@@ -194,6 +221,10 @@ export default function PlanTerrainPage() {
           superficie_m2: b.detail_terrain.superficie_m2,
           longueur_m: b.detail_terrain.longueur_m,
           largeur_m: b.detail_terrain.largeur_m,
+          base_m: b.detail_terrain.base_m,
+          hauteur_m: b.detail_terrain.hauteur_m,
+          hypotenuse_m: b.detail_terrain.hypotenuse_m,
+          diagonale_m: b.detail_terrain.diagonale_m,
           moughataa: b.detail_terrain.moughataa,
           adresse: b.adresse_complete,
           polygone: b.detail_terrain.polygone,
@@ -404,6 +435,10 @@ export default function PlanTerrainPage() {
                   superficie={selectedZone.superficie_m2}
                   longueurM={selectedZone.longueur_m}
                   largeurM={selectedZone.largeur_m}
+                  baseM={selectedZone.base_m}
+                  hauteurM={selectedZone.hauteur_m}
+                  hypotenuseM={selectedZone.hypotenuse_m}
+                  diagonaleM={selectedZone.diagonale_m}
                   t={t}
                   footer={
                     <div className="plan-popup-actions">
@@ -450,6 +485,10 @@ export default function PlanTerrainPage() {
                   superficie={selectedLot.superficie_m2}
                   longueurM={selectedLot.longueur_m}
                   largeurM={selectedLot.largeur_m}
+                  baseM={selectedLot.base_m}
+                  hauteurM={selectedLot.hauteur_m}
+                  hypotenuseM={selectedLot.hypotenuse_m}
+                  diagonaleM={selectedLot.diagonale_m}
                   t={t}
                   footer={
                     <>

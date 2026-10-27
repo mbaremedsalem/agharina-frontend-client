@@ -231,6 +231,34 @@ export default function BienDetailPage() {
                   <span>{t("bienDetail.width")}</span>
                 </div>
               ) : null}
+              {bien.detail_terrain?.base_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.base_m} m</strong>
+                  <span>{t("bienDetail.base")}</span>
+                </div>
+              ) : null}
+              {bien.detail_terrain?.hauteur_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.hauteur_m} m</strong>
+                  <span>{t("bienDetail.height")}</span>
+                </div>
+              ) : null}
+              {bien.detail_terrain?.hypotenuse_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.hypotenuse_m} m</strong>
+                  <span>{t("bienDetail.hypotenuse")}</span>
+                </div>
+              ) : null}
+              {bien.detail_terrain?.diagonale_m ? (
+                <div className="spec-item">
+                  <Ruler className="icon-sm" />
+                  <strong>{bien.detail_terrain.diagonale_m} m</strong>
+                  <span>{t("bienDetail.diagonal")}</span>
+                </div>
+              ) : null}
               {bien.detail_ceremonie?.capacite_personnes ? (
                 <div className="spec-item">
                   <Users className="icon-sm" />
