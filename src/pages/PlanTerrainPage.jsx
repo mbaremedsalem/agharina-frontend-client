@@ -43,6 +43,15 @@ const COULEURS_ZONES = {
   autre: { fill: "#d1d5db", stroke: "#4b5563" },
 };
 
+// Icone prefixee au nom de la zone (meme convention que l'editeur admin).
+const ICONES_ZONES = {
+  espace_vert: "🌳",
+  espace_public: "🏞️",
+  equipement_public: "🏛️",
+  mosquee: "🕌",
+  autre: "📍",
+};
+
 function statutLot(lot) {
   if (lot.vendu) return "vendu";
   if (lot.statut_disponibilite === "attribue") return "attribue";
@@ -190,7 +199,11 @@ export default function PlanTerrainPage() {
   // d'un choix de quartier) : la recherche ville/quartier/numero ne fait
   // que filtrer/zoomer sur ce qui est deja affiche - c'est exactement le
   // meme plan que celui uploade cote admin (meme PlanQuartier/polygones).
-  const { items: plans } = useResource("/plans-quartier/", { actif: "true" });
+  // Tous les plans (actifs ou non) : les zones (mosquees, parcs...) sont
+  // stockees en coordonnees relatives a l'image de leur plan, il faut donc
+  // la position du plan pour les placer - meme s'il est desactive, comme
+  // les terrains du meme plan qui, eux, restent affiches.
+  const { items: plans } = useResource("/plans-quartier/");
   const { items: terrains } = useResource("/biens/", { type_bien: "terrain", actif: "true" });
   const { items: espaces } = useResource("/biens/", { type_bien: "espace", actif: "true" });
   const { items: zonesData } = useResource("/zones-plan/");
@@ -233,7 +246,15 @@ export default function PlanTerrainPage() {
   );
 
   const plansAffiches = useMemo(
-    () => plans.filter((p) => p.actif && (!quartier || String(p.quartier) === String(quartier))),
+    () =>
+      plans.filter(
+        (p) =>
+          p.centre_latitude != null &&
+          p.centre_longitude != null &&
+          p.largeur_m != null &&
+          p.hauteur_m != null &&
+          (!quartier || String(p.quartier) === String(quartier))
+      ),
     [plans, quartier]
   );
 
@@ -244,7 +265,10 @@ export default function PlanTerrainPage() {
   }, [plansAffiches]);
 
   const zones = useMemo(
-    () => zonesData.filter((z) => planById.has(z.plan)),
+    () =>
+      zonesData.filter(
+        (z) => planById.has(z.plan) && Array.isArray(z.polygone_local) && z.polygone_local.length >= 3
+      ),
     [zonesData, planById]
   );
 
@@ -294,8 +318,10 @@ export default function PlanTerrainPage() {
     mapRef.current.fitBounds(bounds);
   }
 
-  const center = plansAffiches[0]
-    ? { lat: Number(plansAffiches[0].centre_latitude), lng: Number(plansAffiches[0].centre_longitude) }
+  const plansActifs = plansAffiches.filter((p) => p.actif);
+  const centrePlan = plansActifs[0] || plansAffiches[0];
+  const center = centrePlan
+    ? { lat: Number(centrePlan.centre_latitude), lng: Number(centrePlan.centre_longitude) }
     : DEFAULT_CENTER;
 
   return (
@@ -366,7 +392,7 @@ export default function PlanTerrainPage() {
 
       {notFound && <p className="muted">{t("planTerrain.notFound", { numero: numeroLot })}</p>}
 
-      {plansAffiches.length === 0 && <p className="muted">{t("planTerrain.noPlan")}</p>}
+      {lots.length === 0 && zones.length === 0 && <p className="muted">{t("planTerrain.noPlan")}</p>}
 
       {!isLoaded && <div className="page-loading">{t("common.loading")}</div>}
 
@@ -410,7 +436,12 @@ export default function PlanTerrainPage() {
                 <Marker
                   key={`zone-label-${zone.id}`}
                   position={polygonCentroid(zone.polygone_local.map((p) => localPointToLatLng(p.x, p.y, plan)))}
-                  label={{ text: zone.nom, fontSize: "10px", fontWeight: "600", color: "#1f2937" }}
+                  label={{
+                    text: `${ICONES_ZONES[zone.type_zone] || ICONES_ZONES.autre} ${zone.nom}`,
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: "#1f2937",
+                  }}
                   icon={{
                     url: "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E",
                   }}
