@@ -1,26 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  ChevronDown,
-  Crosshair,
-  Landmark,
-  Layers,
-  MapPin,
-  Maximize2,
-  MessageCircle,
-  Phone,
-  Ruler,
-  Search,
-  Waypoints,
-} from "lucide-react";
-import { GoogleMap, InfoWindow, Marker, Polygon, useLoadScript } from "@react-google-maps/api";
+import { ChevronDown, Crosshair, Eye, EyeOff, MapPin, Navigation, Search, Share2, Waypoints, X } from "lucide-react";
+import { FLOAT_PANE, GoogleMap, Marker, OverlayViewF, Polygon, useLoadScript } from "@react-google-maps/api";
 import { useResource } from "../api/useResource";
-import { DEFAULT_BIEN_IMAGE, localizedField, formatPrix } from "../constants";
+import { localizedField, formatPrix } from "../constants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const DEFAULT_CENTER = { lat: 18.0858, lng: -15.9785 };
-const CONTACT_PHONE = "20203000"; // meme numero que ContactPage/Footer
 
 // Couleurs reprises des tokens du site (--success/--danger/--primary) pour
 // rester coherent visuellement avec le reste du frontend, plus un amber
@@ -30,7 +17,12 @@ const STATUT_COULEURS = {
   attribue: { fill: "#f59e0b", stroke: "#92400e", labelKey: "legendAssigned" },
   vendu: { fill: "#ef4444", stroke: "#b91c1c", labelKey: "legendSold" },
 };
-const COULEUR_RECHERCHE = { fill: "#4f46e5", stroke: "#4338ca" };
+
+// Style "cadastre" sur satellite : contour noir fin, remplissage tres
+// leger (juste de quoi deviner le statut) ; le lot selectionne ressort en
+// contour blanc epais.
+const LOT_STROKE = "#0b0b0f";
+const LOT_SELECTED_STROKE = "#ffffff";
 
 // Zones non-vendables du plan (espace vert, equipement public, mosquee...) :
 // meme palette que l'editeur admin, pour que le client voie exactement le
@@ -51,6 +43,15 @@ const ICONES_ZONES = {
   mosquee: "🕌",
   autre: "📍",
 };
+
+// Types de fond de carte proposes au client (hybride par defaut).
+const TYPES_CARTE = [
+  { id: "satellite", labelKey: "mapSatellite" },
+  { id: "hybrid", labelKey: "mapHybrid" },
+  { id: "roadmap", labelKey: "mapPlan" },
+];
+
+const TRANSPARENT_ICON = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E";
 
 function statutLot(lot) {
   if (lot.vendu) return "vendu";
@@ -97,80 +98,93 @@ function localPointToLatLng(fx, fy, plan) {
 
 function polygonCentroid(points) {
   const n = points.length;
-  const lat = points.reduce((sum, p) => sum + p.lat, 0) / n;
-  const lng = points.reduce((sum, p) => sum + p.lng, 0) / n;
+  const lat = points.reduce((sum, p) => sum + Number(p.lat), 0) / n;
+  const lng = points.reduce((sum, p) => sum + Number(p.lng), 0) / n;
   return { lat, lng };
 }
 
+const fmtM = (v) => `${Number(v)}m`;
+
 /**
- * Carte du popup d'un lot/espace sur le plan - layout partage entre
- * terrain et espace (memes champs moughataa/emplacement/surface/
- * dimensions), seul le pied (prix+statut+actions pour un terrain, lien
- * simple pour un espace) differe via `footer`.
+ * Cotes du lot facon cadastre : les 4 cotes d'un rectangle ("35m 20m 35m
+ * 20m"), ou base/hauteur/hypotenuse d'un lot triangulaire.
  */
-function PlanPopupCard({
-  titre,
-  photo,
-  numero,
-  moughataa,
-  adresse,
-  superficie,
-  longueurM,
-  largeurM,
-  baseM,
-  hauteurM,
-  hypotenuseM,
-  diagonaleM,
-  t,
-  footer,
-}) {
+function cotesTexte(o) {
+  if (o.longueur_m && o.largeur_m) {
+    return [o.longueur_m, o.largeur_m, o.longueur_m, o.largeur_m].map(fmtM).join("  ");
+  }
+  const tri = [o.base_m, o.hauteur_m, o.hypotenuse_m].filter(Boolean);
+  if (tri.length) return tri.map(fmtM).join("  ");
+  return null;
+}
+
+function itineraireUrl({ lat, lng }) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
+// Le popup flotte au-dessus du centre du lot, pointe vers lui.
+const popupOffset = (w, h) => ({ x: -w / 2, y: -h - 12 });
+
+/**
+ * Fiche popup "tableau" ancree sur la carte : en-tete (titre + statut),
+ * lignes libelle/valeur, puis barre d'actions Itinéraire / fiche / Partager.
+ * Les clics ne traversent pas jusqu'a la carte (sinon le clic carte
+ * fermerait aussitot le popup).
+ */
+function PlanInfoCard({ titre, statut, rows, position, lien, shareText, onClose, t }) {
   return (
-    <div className="plan-popup">
-      <div className="plan-popup-media">
-        <img src={photo || DEFAULT_BIEN_IMAGE} alt="" />
-        {numero && <span className="plan-popup-badge-numero">{numero}</span>}
+    <OverlayViewF position={position} mapPaneName={FLOAT_PANE} getPixelPositionOffset={popupOffset}>
+      <div
+        className="plan-card"
+        ref={(el) => el && window.google?.maps?.OverlayView?.preventMapHitsAndGesturesFrom?.(el)}
+      >
+        <div className="plan-card-head">
+          <div className="plan-card-title">{titre}</div>
+          {statut && (
+            <span className="plan-card-statut" style={{ background: STATUT_COULEURS[statut].fill }}>
+              {t(`planTerrain.${STATUT_COULEURS[statut].labelKey}`)}
+            </span>
+          )}
+          <button type="button" className="plan-card-close" onClick={onClose} aria-label={t("planTerrain.close")}>
+            <X size={15} />
+          </button>
+        </div>
+
+        <table className="plan-card-table">
+          <tbody>
+            {rows
+              .filter((r) => r.value)
+              .map((r) => (
+                <tr key={r.label}>
+                  <th>{r.label}</th>
+                  <td>{r.value}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+
+        <div className="plan-card-actions">
+          <a href={itineraireUrl(position)} target="_blank" rel="noreferrer" className="plan-card-btn plan-card-btn-dir">
+            <Navigation size={15} />
+            {t("planTerrain.directions")}
+          </a>
+          {lien && (
+            <Link to={lien} className="plan-card-btn plan-card-btn-main">
+              {t("planTerrain.viewBien")}
+            </Link>
+          )}
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="plan-card-btn plan-card-btn-share"
+          >
+            <Share2 size={15} />
+            {t("planTerrain.share")}
+          </a>
+        </div>
       </div>
-      <div className="plan-popup-title">{titre}</div>
-      <div className="plan-popup-fields">
-        {moughataa && (
-          <div className="plan-popup-field">
-            <Landmark size={13} />
-            {moughataa}
-          </div>
-        )}
-        {adresse && (
-          <div className="plan-popup-field">
-            <MapPin size={13} />
-            {adresse}
-          </div>
-        )}
-        {superficie && (
-          <div className="plan-popup-field">
-            <Ruler size={13} />
-            {t("planTerrain.lotSuperficie", { superficie })}
-          </div>
-        )}
-        {(longueurM || largeurM) && (
-          <div className="plan-popup-field">
-            <Maximize2 size={13} />
-            {t("planTerrain.lotDimensions", { longueur: longueurM ?? "?", largeur: largeurM ?? "?" })}
-          </div>
-        )}
-        {(baseM || hauteurM) && (
-          <div className="plan-popup-field">
-            <Maximize2 size={13} />
-            {t("planTerrain.lotBaseHauteur", { base: baseM ?? "?", hauteur: hauteurM ?? "?" })}
-          </div>
-        )}
-        {(hypotenuseM || diagonaleM) && (
-          <div className="plan-popup-field">
-            <Maximize2 size={13} />
-            {t("planTerrain.lotHypotenuseDiagonale", { hypotenuse: hypotenuseM ?? "?", diagonale: diagonaleM ?? "?" })}
-          </div>
-        )}
-      </div>
-      {footer}
-    </div>
+    </OverlayViewF>
   );
 }
 
@@ -180,11 +194,16 @@ export default function PlanTerrainPage() {
 
   const [ville, setVille] = useState("");
   const [quartier, setQuartier] = useState("");
+  // numeroSaisi = champ en cours de frappe ; numeroLot = numero
+  // effectivement recherche (applique au clic sur "Rechercher").
+  const [numeroSaisi, setNumeroSaisi] = useState("");
   const [numeroLot, setNumeroLot] = useState("");
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [notFound, setNotFound] = useState(false);
-  const [mapTypeId, setMapTypeId] = useState("satellite");
+  const [afficherLots, setAfficherLots] = useState(true);
+  const [mapTypeId, setMapTypeId] = useState("hybrid");
+  const [hoveredLot, setHoveredLot] = useState(null);
   const mapRef = useRef(null);
   const [zoom, setZoom] = useState(16);
 
@@ -227,9 +246,9 @@ export default function PlanTerrainPage() {
           titre_ar: b.titre_ar,
           prix: b.prix,
           unite_prix: b.unite_prix,
-          photo_principale: b.photo_principale,
           vendu: b.vendu,
           statut_disponibilite: b.statut_disponibilite,
+          quartier: b.quartier,
           numero_lot: b.detail_terrain.numero_lot,
           superficie_m2: b.detail_terrain.superficie_m2,
           longueur_m: b.detail_terrain.longueur_m,
@@ -237,10 +256,10 @@ export default function PlanTerrainPage() {
           base_m: b.detail_terrain.base_m,
           hauteur_m: b.detail_terrain.hauteur_m,
           hypotenuse_m: b.detail_terrain.hypotenuse_m,
-          diagonale_m: b.detail_terrain.diagonale_m,
           moughataa: b.detail_terrain.moughataa,
           adresse: b.adresse_complete,
           polygone: b.detail_terrain.polygone,
+          centre: polygonCentroid(b.detail_terrain.polygone),
         })),
     [terrains, quartier]
   );
@@ -266,10 +285,14 @@ export default function PlanTerrainPage() {
 
   const zones = useMemo(
     () =>
-      zonesData.filter(
-        (z) => planById.has(z.plan) && Array.isArray(z.polygone_local) && z.polygone_local.length >= 3
-      ),
-    [zonesData, planById]
+      zonesData
+        .filter((z) => planById.has(z.plan) && Array.isArray(z.polygone_local) && z.polygone_local.length >= 3)
+        .map((z) => {
+          const plan = planById.get(z.plan);
+          const paths = z.polygone_local.map((p) => localPointToLatLng(p.x, p.y, plan));
+          return { ...z, paths, centre: polygonCentroid(paths), estPubliee: Boolean(z.bien && espaceById.has(z.bien)) };
+        }),
+    [zonesData, planById, espaceById]
   );
 
   const matchedLot = useMemo(() => {
@@ -278,9 +301,25 @@ export default function PlanTerrainPage() {
     return lots.find((lot) => (lot.numero_lot || "").toLowerCase() === search) || null;
   }, [lots, numeroLot]);
 
-  // Zoome/recadre sur un numero de lot trouve ; sinon, sur l'ensemble des
-  // lots actuellement affiches (filtres ville/quartier appliques, ou tout
-  // si aucun filtre) des que la carte et les donnees sont pretes.
+  function fitAll() {
+    if (!mapRef.current || !window.google || lots.length === 0) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    lots.forEach((lot) => lot.polygone.forEach((p) => bounds.extend(p)));
+    mapRef.current.fitBounds(bounds);
+  }
+
+  // Centre la carte sur le lot choisi en laissant de la place au-dessus
+  // pour le popup.
+  function focusLot(lot) {
+    setSelectedZone(null);
+    setSelectedLot(lot);
+    if (!mapRef.current) return;
+    mapRef.current.panTo(lot.centre);
+    mapRef.current.panBy(0, -140);
+  }
+
+  // Zoome sur le numero recherche ; sinon, cadre l'ensemble des lots
+  // affiches (filtres ville/quartier appliques) des que tout est pret.
   useEffect(() => {
     if (!isLoaded || !mapRef.current || !window.google) return;
 
@@ -288,34 +327,37 @@ export default function PlanTerrainPage() {
       setNotFound(!matchedLot);
       if (matchedLot) {
         mapRef.current.fitBounds(polygonBounds(matchedLot.polygone));
-        setSelectedLot(matchedLot);
+        // fitBounds sur un seul lot zoome trop : on plafonne a 19.
+        window.google.maps.event.addListenerOnce(mapRef.current, "idle", () => {
+          if (mapRef.current.getZoom() > 19) mapRef.current.setZoom(19);
+          focusLot(matchedLot);
+        });
       }
       return;
     }
 
     setNotFound(false);
-    if (lots.length > 0) {
-      const bounds = new window.google.maps.LatLngBounds();
-      lots.forEach((lot) => lot.polygone.forEach((p) => bounds.extend(p)));
-      mapRef.current.fitBounds(bounds);
-    }
+    fitAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchedLot, numeroLot, isLoaded, lots]);
 
   function handleVilleChange(value) {
     setVille(value);
     setQuartier("");
+    setNumeroSaisi("");
     setNumeroLot("");
   }
 
-  function handleMapLoad(map) {
-    mapRef.current = map;
+  function handleSearch(e) {
+    e.preventDefault();
+    setNumeroLot(numeroSaisi);
   }
 
-  function handleRecenter() {
-    if (!mapRef.current || !window.google || lots.length === 0) return;
-    const bounds = new window.google.maps.LatLngBounds();
-    lots.forEach((lot) => lot.polygone.forEach((p) => bounds.extend(p)));
-    mapRef.current.fitBounds(bounds);
+  function nomQuartier(lot) {
+    const q = lot.quartier;
+    if (q && typeof q === "object") return localizedField(q, "nom", i18n);
+    const found = quartiers.find((x) => String(x.id) === String(q));
+    return found ? localizedField(found, "nom", i18n) : null;
   }
 
   const plansActifs = plansAffiches.filter((p) => p.actif);
@@ -324,275 +366,254 @@ export default function PlanTerrainPage() {
     ? { lat: Number(centrePlan.centre_latitude), lng: Number(centrePlan.centre_longitude) }
     : DEFAULT_CENTER;
 
-  return (
-    <div className="container section">
-      <div className="page-header" style={{ marginBottom: "1rem" }}>
-        <h1>{t("planTerrain.title")}</h1>
-      </div>
+  const selectedEspace = selectedZone && espaceById.get(selectedZone.bien);
 
-      <div className="filter-panel" style={{ marginBottom: "1.5rem", display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-        <div className="filter-group">
-          <span>{t("filters.city")}</span>
-          <div className="field-select-wrap field-icon-wrap">
-            <MapPin className="icon-sm" />
-            <select value={ville} onChange={(e) => handleVilleChange(e.target.value)}>
-              <option value="">{t("filters.allCities")}</option>
-              {villes.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {localizedField(v, "nom", i18n)}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="icon-sm chevron" />
-          </div>
+  return (
+    <div className="container section plan-page">
+      <form className="plan-search" onSubmit={handleSearch}>
+        <div className="plan-search-field">
+          <MapPin className="icon-sm" />
+          <select value={ville} onChange={(e) => handleVilleChange(e.target.value)} aria-label={t("filters.city")}>
+            <option value="">{t("filters.allCities")}</option>
+            {villes.map((v) => (
+              <option key={v.id} value={v.id}>
+                {localizedField(v, "nom", i18n)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="icon-sm chevron" />
         </div>
 
-        {ville && (
-          <div className="filter-group">
-            <span>{t("filters.district")}</span>
-            <div className="field-select-wrap field-icon-wrap">
-              <Waypoints className="icon-sm" />
-              <select
-                value={quartier}
-                onChange={(e) => {
-                  setQuartier(e.target.value);
-                  setNumeroLot("");
-                }}
-              >
-                <option value="">{t("filters.allDistricts")}</option>
-                {quartierOptions.map((q) => (
-                  <option key={q.id} value={q.id}>
-                    {localizedField(q, "nom", i18n)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="icon-sm chevron" />
-            </div>
-          </div>
-        )}
+        <div className="plan-search-field">
+          <Waypoints className="icon-sm" />
+          <select
+            value={quartier}
+            disabled={!ville}
+            onChange={(e) => {
+              setQuartier(e.target.value);
+              setNumeroSaisi("");
+              setNumeroLot("");
+            }}
+            aria-label={t("filters.district")}
+          >
+            <option value="">{t("filters.allDistricts")}</option>
+            {quartierOptions.map((q) => (
+              <option key={q.id} value={q.id}>
+                {localizedField(q, "nom", i18n)}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="icon-sm chevron" />
+        </div>
 
-        {quartier && (
-          <div className="filter-group">
-            <span>{t("planTerrain.fieldNumero")}</span>
-            <div className="field-icon-wrap">
-              <Search className="icon-sm" />
-              <input
-                value={numeroLot}
-                onChange={(e) => setNumeroLot(e.target.value)}
-                placeholder={t("planTerrain.fieldNumeroPlaceholder")}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+        <div className="plan-search-field">
+          <Search className="icon-sm" />
+          <input
+            value={numeroSaisi}
+            onChange={(e) => setNumeroSaisi(e.target.value)}
+            placeholder={t("planTerrain.fieldNumeroPlaceholder")}
+            aria-label={t("planTerrain.fieldNumero")}
+            inputMode="numeric"
+          />
+        </div>
+
+        <button type="submit" className="plan-search-btn">
+          {t("planTerrain.search")}
+        </button>
+      </form>
 
       {!GOOGLE_MAPS_API_KEY && <p className="muted">{t("planTerrain.missingApiKey")}</p>}
-
       {loadError && <p className="muted">{t("planTerrain.loadError")}</p>}
-
-      {notFound && <p className="muted">{t("planTerrain.notFound", { numero: numeroLot })}</p>}
-
+      {notFound && <p className="plan-notfound">{t("planTerrain.notFound", { numero: numeroLot })}</p>}
       {lots.length === 0 && zones.length === 0 && <p className="muted">{t("planTerrain.noPlan")}</p>}
-
       {!isLoaded && <div className="page-loading">{t("common.loading")}</div>}
 
       {isLoaded && (
-        <div className="plan-terrain-map-wrap">
+        <div className="plan-map">
           <GoogleMap
-            onLoad={handleMapLoad}
+            onLoad={(map) => (mapRef.current = map)}
             onZoomChanged={() => mapRef.current && setZoom(mapRef.current.getZoom())}
+            onClick={() => {
+              setSelectedLot(null);
+              setSelectedZone(null);
+            }}
             center={center}
             zoom={zoom}
             mapTypeId={mapTypeId}
-            mapContainerStyle={{ width: "100%", height: 620, borderRadius: 12 }}
-            options={{ streetViewControl: false, fullscreenControl: true, zoomControl: true, tilt: 45, heading: 0 }}
+            mapContainerStyle={{ width: "100%", height: "100%" }}
+            options={{
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+              rotateControl: false,
+              zoomControl: true,
+              clickableIcons: false,
+              tilt: 0,
+              gestureHandling: "greedy",
+            }}
           >
-            {zones.map((zone) => {
-              const plan = planById.get(zone.plan);
-              if (!plan) return null;
-              const couleur = COULEURS_ZONES[zone.type_zone] || COULEURS_ZONES.autre;
-              const estPubliee = Boolean(zone.bien && espaceById.has(zone.bien));
-              return (
-                <Polygon
-                  key={`zone-${zone.id}`}
-                  paths={zone.polygone_local.map((p) => localPointToLatLng(p.x, p.y, plan))}
-                  onClick={estPubliee ? () => setSelectedZone(zone) : undefined}
-                  options={{
-                    fillColor: couleur.fill,
-                    fillOpacity: 0.45,
-                    strokeColor: couleur.stroke,
-                    strokeWeight: 1.5,
-                    clickable: estPubliee,
-                    zIndex: 1,
-                  }}
-                />
-              );
-            })}
-            {zones.map((zone) => {
-              const plan = planById.get(zone.plan);
-              if (!plan) return null;
-              const estPubliee = Boolean(zone.bien && espaceById.has(zone.bien));
-              return (
+            {afficherLots &&
+              zones.map((zone) => {
+                const couleur = COULEURS_ZONES[zone.type_zone] || COULEURS_ZONES.autre;
+                return (
+                  <Polygon
+                    key={`zone-${zone.id}`}
+                    paths={zone.paths}
+                    onClick={
+                      zone.estPubliee
+                        ? () => {
+                            setSelectedLot(null);
+                            setSelectedZone(zone);
+                          }
+                        : undefined
+                    }
+                    options={{
+                      fillColor: couleur.fill,
+                      fillOpacity: 0.45,
+                      strokeColor: LOT_STROKE,
+                      strokeWeight: 1.6,
+                      clickable: zone.estPubliee,
+                      zIndex: 1,
+                    }}
+                  />
+                );
+              })}
+            {afficherLots &&
+              zoom >= 15 &&
+              zones.map((zone) => (
                 <Marker
                   key={`zone-label-${zone.id}`}
-                  position={polygonCentroid(zone.polygone_local.map((p) => localPointToLatLng(p.x, p.y, plan)))}
+                  position={zone.centre}
                   label={{
                     text: `${ICONES_ZONES[zone.type_zone] || ICONES_ZONES.autre} ${zone.nom}`,
-                    fontSize: "11px",
+                    fontSize: "12px",
                     fontWeight: "700",
-                    color: "#1f2937",
+                    color: "#ffffff",
+                    className: "plan-zone-marker-label",
                   }}
-                  icon={{
-                    url: "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E",
-                  }}
-                  onClick={estPubliee ? () => setSelectedZone(zone) : undefined}
-                  clickable={estPubliee}
+                  icon={{ url: TRANSPARENT_ICON }}
+                  clickable={false}
                 />
-              );
-            })}
+              ))}
 
-            {selectedZone && espaceById.get(selectedZone.bien) && (
-              <InfoWindow
-                position={polygonCentroid(
-                  selectedZone.polygone_local.map((p) => localPointToLatLng(p.x, p.y, planById.get(selectedZone.plan)))
-                )}
-                onCloseClick={() => setSelectedZone(null)}
-              >
-                <PlanPopupCard
-                  titre={selectedZone.nom}
-                  photo={espaceById.get(selectedZone.bien).photo_principale}
-                  moughataa={selectedZone.moughataa}
-                  adresse={selectedZone.adresse}
-                  superficie={selectedZone.superficie_m2}
-                  longueurM={selectedZone.longueur_m}
-                  largeurM={selectedZone.largeur_m}
-                  baseM={selectedZone.base_m}
-                  hauteurM={selectedZone.hauteur_m}
-                  hypotenuseM={selectedZone.hypotenuse_m}
-                  diagonaleM={selectedZone.diagonale_m}
-                  t={t}
-                  footer={
-                    <div className="plan-popup-actions">
-                      <Link
-                        to={`/biens/${espaceById.get(selectedZone.bien).reference}`}
-                        className="btn btn-primary btn-small"
-                      >
-                        {t("planTerrain.viewBien")}
-                      </Link>
-                    </div>
-                  }
-                />
-              </InfoWindow>
-            )}
-
-            {lots.map((lot) => {
-              const estMatch = matchedLot?.reference === lot.reference;
-              const couleur = estMatch ? COULEUR_RECHERCHE : STATUT_COULEURS[statutLot(lot)];
-              return (
-                <Polygon
-                  key={lot.reference}
-                  paths={lot.polygone}
-                  onClick={() => setSelectedLot(lot)}
-                  options={{
-                    fillColor: couleur.fill,
-                    fillOpacity: matchedLot && !estMatch ? 0.15 : 0.4,
-                    strokeColor: couleur.stroke,
-                    strokeWeight: estMatch ? 3 : 2,
-                    clickable: true,
-                    zIndex: 2,
-                  }}
-                />
-              );
-            })}
+            {afficherLots &&
+              lots.map((lot) => {
+                const estSelection = selectedLot?.reference === lot.reference;
+                const estSurvole = hoveredLot === lot.reference;
+                const couleur = STATUT_COULEURS[statutLot(lot)];
+                return (
+                  <Polygon
+                    key={lot.reference}
+                    paths={lot.polygone}
+                    onClick={() => focusLot(lot)}
+                    onMouseOver={() => setHoveredLot(lot.reference)}
+                    onMouseOut={() => setHoveredLot((h) => (h === lot.reference ? null : h))}
+                    options={{
+                      fillColor: estSelection ? LOT_SELECTED_STROKE : couleur.fill,
+                      fillOpacity: estSelection ? 0.3 : estSurvole ? 0.35 : 0.12,
+                      strokeColor: estSelection ? LOT_SELECTED_STROKE : LOT_STROKE,
+                      strokeOpacity: 1,
+                      strokeWeight: estSelection ? 3.5 : 1.6,
+                      clickable: true,
+                      zIndex: estSelection ? 3 : 2,
+                    }}
+                  />
+                );
+              })}
 
             {selectedLot && (
-              <InfoWindow position={selectedLot.polygone[0]} onCloseClick={() => setSelectedLot(null)}>
-                <PlanPopupCard
-                  titre={localizedField(selectedLot, "titre", i18n)}
-                  photo={selectedLot.photo_principale}
-                  numero={selectedLot.numero_lot}
-                  moughataa={selectedLot.moughataa}
-                  adresse={selectedLot.adresse}
-                  superficie={selectedLot.superficie_m2}
-                  longueurM={selectedLot.longueur_m}
-                  largeurM={selectedLot.largeur_m}
-                  baseM={selectedLot.base_m}
-                  hauteurM={selectedLot.hauteur_m}
-                  hypotenuseM={selectedLot.hypotenuse_m}
-                  diagonaleM={selectedLot.diagonale_m}
-                  t={t}
-                  footer={
-                    <>
-                      <div className="plan-popup-price-row">
-                        {Number(selectedLot.prix) > 0 ? (
-                          <strong>{formatPrix(t, selectedLot.prix, selectedLot.unite_prix)}</strong>
-                        ) : (
-                          <span />
-                        )}
-                        <span
-                          className="plan-terrain-statut-badge"
-                          style={{ background: STATUT_COULEURS[statutLot(selectedLot)].fill }}
-                        >
-                          {t(`planTerrain.${STATUT_COULEURS[statutLot(selectedLot)].labelKey}`)}
-                        </span>
-                      </div>
-                      <div className="plan-popup-actions">
-                        <Link to={`/biens/${selectedLot.reference}`} className="btn btn-primary btn-small">
-                          {t("planTerrain.viewBien")}
-                        </Link>
-                        <a
-                          href={`tel:${CONTACT_PHONE}`}
-                          className="btn btn-ghost btn-small plan-popup-icon-btn"
-                          title={t("planTerrain.call")}
-                        >
-                          <Phone className="icon-sm" />
-                        </a>
-                        <a
-                          href={`https://wa.me/222${CONTACT_PHONE}?text=${encodeURIComponent(
-                            t("planTerrain.whatsappMessage", { numero: selectedLot.numero_lot })
-                          )}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-ghost btn-small plan-popup-icon-btn"
-                          title={t("planTerrain.whatsapp")}
-                        >
-                          <MessageCircle className="icon-sm" />
-                        </a>
-                      </div>
-                    </>
-                  }
-                />
-              </InfoWindow>
+              <PlanInfoCard
+                t={t}
+                position={selectedLot.centre}
+                titre={localizedField(selectedLot, "titre", i18n) || t("planTerrain.lotNumero", { numero: selectedLot.numero_lot })}
+                statut={statutLot(selectedLot)}
+                lien={`/biens/${selectedLot.reference}`}
+                onClose={() => setSelectedLot(null)}
+                shareText={t("planTerrain.shareMessage", {
+                  numero: selectedLot.numero_lot,
+                  url: `${window.location.origin}/biens/${selectedLot.reference}`,
+                })}
+                rows={[
+                  { label: t("planTerrain.rowMoughataa"), value: selectedLot.moughataa },
+                  { label: t("planTerrain.rowZone"), value: nomQuartier(selectedLot) || selectedLot.adresse },
+                  { label: t("planTerrain.rowLot"), value: selectedLot.numero_lot },
+                  {
+                    label: t("planTerrain.rowSuperficie"),
+                    value: selectedLot.superficie_m2 && t("planTerrain.lotSuperficie", { superficie: selectedLot.superficie_m2 }),
+                  },
+                  { label: t("planTerrain.rowCotes"), value: cotesTexte(selectedLot) },
+                  {
+                    label: t("planTerrain.rowPrix"),
+                    value: Number(selectedLot.prix) > 0 && formatPrix(t, selectedLot.prix, selectedLot.unite_prix),
+                  },
+                ]}
+              />
+            )}
+
+            {selectedZone && selectedEspace && (
+              <PlanInfoCard
+                t={t}
+                position={selectedZone.centre}
+                titre={`${ICONES_ZONES[selectedZone.type_zone] || ICONES_ZONES.autre} ${selectedZone.nom}`}
+                lien={`/biens/${selectedEspace.reference}`}
+                onClose={() => setSelectedZone(null)}
+                shareText={`${selectedZone.nom} - ${window.location.origin}/biens/${selectedEspace.reference}`}
+                rows={[
+                  { label: t("planTerrain.rowMoughataa"), value: selectedZone.moughataa },
+                  { label: t("planTerrain.rowZone"), value: selectedZone.adresse },
+                  {
+                    label: t("planTerrain.rowSuperficie"),
+                    value: selectedZone.superficie_m2 && t("planTerrain.lotSuperficie", { superficie: selectedZone.superficie_m2 }),
+                  },
+                  { label: t("planTerrain.rowCotes"), value: cotesTexte(selectedZone) },
+                ]}
+              />
             )}
           </GoogleMap>
 
-          <div className="plan-terrain-controls">
+          <div className="plan-map-types" role="radiogroup" aria-label={t("planTerrain.mapType")}>
+            {TYPES_CARTE.map((type) => (
+              <button
+                key={type.id}
+                type="button"
+                role="radio"
+                aria-checked={mapTypeId === type.id}
+                className={`plan-map-type${mapTypeId === type.id ? " is-active" : ""}`}
+                onClick={() => setMapTypeId(type.id)}
+              >
+                {t(`planTerrain.${type.labelKey}`)}
+              </button>
+            ))}
+          </div>
+
+          <div className="plan-map-controls">
             <button
               type="button"
-              className="plan-terrain-control-btn"
-              onClick={() => setMapTypeId((m) => (m === "satellite" ? "roadmap" : "satellite"))}
-              title={t("planTerrain.toggleMapType")}
-              aria-label={t("planTerrain.toggleMapType")}
+              className={`plan-map-btn${afficherLots ? " is-on" : ""}`}
+              onClick={() => setAfficherLots((v) => !v)}
+              title={t("planTerrain.toggleLots")}
+              aria-label={t("planTerrain.toggleLots")}
+              aria-pressed={afficherLots}
             >
-              <Layers className="icon-sm" />
+              {afficherLots ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
             <button
               type="button"
-              className="plan-terrain-control-btn"
-              onClick={handleRecenter}
+              className="plan-map-btn"
+              onClick={fitAll}
               title={t("planTerrain.recenter")}
               aria-label={t("planTerrain.recenter")}
             >
-              <Crosshair className="icon-sm" />
+              <Crosshair size={18} />
             </button>
           </div>
 
-          <div className="plan-terrain-legend">
+          <div className="plan-map-legend">
             {Object.entries(STATUT_COULEURS).map(([key, c]) => (
-              <div key={key} className="plan-terrain-legend-item">
-                <span className="plan-terrain-legend-swatch" style={{ background: c.fill }} />
+              <span key={key} className="plan-map-legend-item">
+                <span className="plan-map-legend-swatch" style={{ background: c.fill }} />
                 {t(`planTerrain.${c.labelKey}`)}
-              </div>
+              </span>
             ))}
           </div>
         </div>

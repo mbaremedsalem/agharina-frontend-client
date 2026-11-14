@@ -2554,3 +2554,352 @@ textarea:focus {
     color-scheme: dark;
   }
 }
+
+/* ============ Plan de terrain : recherche + carte satellite ============ */
+.plan-page {
+  max-width: 920px;
+}
+
+.plan-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.plan-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.plan-search-field > .icon-sm:first-child {
+  position: absolute;
+  inset-inline-start: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.plan-search-field .chevron {
+  position: absolute;
+  inset-inline-end: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.plan-search-field select,
+.plan-search-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 42px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.98rem;
+  text-align: center;
+  text-align-last: center;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.plan-search-field select:focus,
+.plan-search-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.plan-search-field select:disabled {
+  opacity: 0.55;
+}
+
+.plan-search-btn {
+  height: 50px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -6px var(--primary);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.plan-search-btn:hover {
+  background: var(--primary-hover);
+}
+
+.plan-search-btn:active {
+  transform: scale(0.99);
+}
+
+.plan-notfound {
+  background: var(--danger-light);
+  color: var(--danger-text);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.8rem;
+}
+
+.plan-map {
+  position: relative;
+  height: min(78vh, 720px);
+  min-height: 460px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.plan-map-controls {
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 5;
+}
+
+.plan-map-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
+  background: #fff;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.plan-map-btn.is-on {
+  background: var(--primary);
+  color: #fff;
+}
+
+.plan-map-legend {
+  position: absolute;
+  bottom: 12px;
+  inset-inline-start: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  background: rgba(15, 15, 20, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+}
+
+.plan-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.plan-map-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1.5px solid #fff;
+}
+
+.plan-zone-marker-label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+/* Fiche popup facon tableau, ancree au-dessus du lot. */
+.plan-card {
+  position: relative;
+  width: min(300px, 82vw);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  overflow: visible;
+  font-family: inherit;
+  color: var(--text);
+  cursor: default;
+}
+
+.plan-card::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 0 0 4px 0;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.plan-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.75rem 0.6rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
+  border-radius: 14px 14px 0 0;
+}
+
+.plan-card-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-card-statut {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.plan-card-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.plan-card-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.plan-card-table tr + tr {
+  border-top: 1px solid var(--border);
+}
+
+.plan-card-table th,
+.plan-card-table td {
+  padding: 0.48rem 0.75rem;
+  text-align: start;
+  vertical-align: middle;
+}
+
+.plan-card-table th {
+  width: 38%;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-alt);
+  white-space: nowrap;
+}
+
+.plan-card-table td {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.plan-card-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border-top: 1px solid var(--border);
+  background: #fff;
+  border-radius: 0 0 14px 14px;
+}
+
+.plan-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  height: 36px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+.plan-card-btn:hover {
+  filter: brightness(0.94);
+}
+
+.plan-card-btn-dir {
+  background: var(--primary-light);
+  color: var(--primary-text);
+}
+
+.plan-card-btn-main {
+  flex: 1;
+  background: var(--primary);
+  color: #fff;
+}
+
+.plan-card-btn-share {
+  background: #25d366;
+  color: #fff;
+}
+
+/* Selecteur du type de carte (Satellite / Hybride / Plan). */
+.plan-map-types {
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  z-index: 5;
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.plan-map-type {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.plan-map-type:hover {
+  color: var(--text);
+}
+
+.plan-map-type.is-active {
+  background: var(--primary);
+  color: #fff;
+}
